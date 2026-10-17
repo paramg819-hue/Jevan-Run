@@ -1,1 +1,139 @@
+
+obile-1.html
+Search within code
+ 
 ‎jevan_run_fresh_mobile-1.html‎
++130
+Lines changed: 130 additions & 0 deletions
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,130 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Jevan Run</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#101827;color:#fff;font-family:Arial,sans-serif;overscroll-behavior:none}
+body{display:flex;justify-content:center;min-height:100vh}.app{width:min(100%,520px);padding:12px}
+h1{text-align:center;margin:4px 0 10px;letter-spacing:2px}
+.hud{display:flex;gap:7px;margin-bottom:8px}.pill{flex:1;background:#24334b;border-radius:10px;padding:10px 4px;text-align:center;font-size:14px;font-weight:bold}
+canvas{display:block;width:100%;height:auto;border:2px solid #40516a;border-radius:14px;background:#83d9ff;touch-action:none;user-select:none;-webkit-user-select:none}
+.controls{display:flex;gap:8px;margin-top:9px}
+button{flex:1;min-height:48px;border:0;border-radius:12px;background:#ffd34d;color:#182235;font-size:16px;font-weight:bold;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent}
+button.alt{background:#dce7f5}
+.note{text-align:center;font-size:13px;color:#c6d2e4;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>⚡ JEVAN RUN</h1>
+<div class="hud">
+  <div class="pill">Score <span id="score">0</span></div>
+  <div class="pill">🪙 Coins <span id="coins">0</span></div>
+  <div class="pill">Bank <span id="bank">0</span></div>
+</div>
+<canvas id="game" width="420" height="600"></canvas>
+<div class="controls">
+  <button id="start">▶ START</button>
+  <button id="jump">⬆ JUMP</button>
+</div>
+<div class="controls">
+  <button id="restart" class="alt">↻ RESTART</button>
+  <button id="sound" class="alt">🔔 TEST SOUND</button>
+</div>
+<p class="note">START dabao. Phir JUMP button ya game screen par tap karo. Obstacle se bacho aur coins lo.</p>
+</div>
+<script>
+(function(){
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const scoreEl=document.getElementById('score'),coinsEl=document.getElementById('coins'),bankEl=document.getElementById('bank');
+const startBtn=document.getElementById('start'),jumpBtn=document.getElementById('jump'),restartBtn=document.getElementById('restart'),soundBtn=document.getElementById('sound');
+const W=canvas.width,H=canvas.height,ground=490;
+let state='ready',player,obstacles,coins,score,runCoins,bank,best,speed,frameNo,lastTime=0,audio=null,muted=false;
+try{bank=+(localStorage.getItem('jevanBank')||0);best=+(localStorage.getItem('jevanBest')||0)}catch(e){bank=0;best=0}
+bankEl.textContent=bank;
+function newGame(){
+ player={x:65,y:ground-48,w:34,h:48,vy:0,grounded:true};
+ obstacles=[];coins=[];score=0;runCoins=0;speed=4;frameNo=0;state='running';
+ scoreEl.textContent='0';coinsEl.textContent='0';startBtn.textContent='⏸ PAUSE';
+}
+function audioUnlock(){
+ try{const AC=window.AudioContext||window.webkitAudioContext;if(AC&&!audio)audio=new AC();if(audio&&audio.state==='suspended')audio.resume()}catch(e){}
+}
+function tone(freq,dur){
+ if(muted)return;try{audioUnlock();if(!audio)return;const o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(.06,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+dur)}catch(e){}
+}
+function jump(){
+ audioUnlock();
+ if(state==='ready'||state==='over'){newGame();return}
+ if(state!=='running')return;
+ if(player.grounded){player.vy=-13;player.grounded=false;tone(420,.07)}
+}
+function startPause(){
+ audioUnlock();
+ if(state==='ready'||state==='over'){newGame();return}
+ if(state==='running'){state='paused';startBtn.textContent='▶ RESUME'}
+ else if(state==='paused'){state='running';startBtn.textContent='⏸ PAUSE'}
+}
+function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function endGame(){state='over';startBtn.textContent='▶ PLAY AGAIN';best=Math.max(best,Math.floor(score));try{localStorage.setItem('jevanBest',best)}catch(e){}}
+function collectCoin(c){c.got=true;runCoins++;bank++;coinsEl.textContent=runCoins;bankEl.textContent=bank;try{localStorage.setItem('jevanBank',bank)}catch(e){}tone(900,.08);if(bank%10===0){bank+=5;bankEl.textContent=bank;try{localStorage.setItem('jevanBank',bank)}catch(e){}setTimeout(()=>tone(1200,.18),100)}}
+function draw(){
+ const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#71d4ff');sky.addColorStop(1,'#e3f9ff');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+ // clouds
+ ctx.fillStyle='rgba(255,255,255,.9)';for(let i=0;i<3;i++){let x=(i*155-(score*.5)%500+500)%500-30,y=70+i%2*50;ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.arc(x+22,y-8,22,0,7);ctx.arc(x+44,y,16,0,7);ctx.fill()}
+ // hills
+ ctx.fillStyle='#79c98c';ctx.beginPath();ctx.moveTo(0,ground);for(let x=0;x<=W;x+=20)ctx.lineTo(x,400+Math.sin(x*.025)*20);ctx.lineTo(W,ground);ctx.fill();
+ ctx.fillStyle='#39a75e';ctx.fillRect(0,ground,W,H-ground);ctx.fillStyle='#3e4655';ctx.fillRect(0,ground+18,W,H-ground-18);ctx.fillStyle='#f8efc9';for(let x=-(score*2%70);x<W;x+=70)ctx.fillRect(x,ground+70,38,6);
+ // coins
+ coins.forEach(c=>{if(c.got)return;ctx.fillStyle='#bd7e0b';ctx.beginPath();ctx.arc(c.x,c.y,11,0,7);ctx.fill();ctx.fillStyle='#ffdb4d';ctx.beginPath();ctx.arc(c.x,c.y,8,0,7);ctx.fill();ctx.fillStyle='#9b6500';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText('$',c.x,c.y+4)});
+ // obstacles
+ obstacles.forEach(o=>{ctx.fillStyle='#b75b2d';ctx.fillRect(o.x,o.y,o.w,o.h);ctx.strokeStyle='#f2b36b';ctx.lineWidth=3;ctx.strokeRect(o.x+3,o.y+3,o.w-6,o.h-6)});
+ // player
+ const p=player;ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(p.x+17,ground+12,23,5,0,0,7);ctx.fill();
+ ctx.strokeStyle='#243148';ctx.lineWidth=7;ctx.lineCap='round';let swing=state==='running'&&p.grounded?Math.sin(frameNo*.25)*5:0;ctx.beginPath();ctx.moveTo(p.x+10,p.y+34);ctx.lineTo(p.x+8+swing,p.y+47);ctx.moveTo(p.x+24,p.y+34);ctx.lineTo(p.x+26-swing,p.y+47);ctx.stroke();
+ ctx.fillStyle='#ff7a35';ctx.fillRect(p.x+4,p.y+15,27,24);ctx.fillStyle='#f2bd91';ctx.beginPath();ctx.arc(p.x+17,p.y+10,12,0,7);ctx.fill();ctx.fillStyle='#263148';ctx.beginPath();ctx.arc(p.x+17,p.y+7,12,Math.PI,Math.PI*2);ctx.fill();ctx.fillStyle='#1b2638';ctx.beginPath();ctx.arc(p.x+22,p.y+11,1.8,0,7);ctx.fill();
+ if(state!=='running'){
+  ctx.fillStyle='rgba(10,20,35,.66)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.fillStyle='#fff';
+  ctx.font='bold 30px Arial';ctx.fillText(state==='ready'?'JEVAN RUN':state==='paused'?'PAUSED':'GAME OVER',W/2,H/2-24);
+  ctx.font='17px Arial';ctx.fillText(state==='ready'?'START dabao':state==='paused'?'Resume karne ke liye RESUME':'Score: '+Math.floor(score)+'  Coins: '+runCoins,W/2,H/2+12);
+  if(state==='over'){ctx.font='15px Arial';ctx.fillText('PLAY AGAIN dabao',W/2,H/2+42)}
+ }
+}
+function update(dt){
+ if(state==='running'){
+  frameNo+=dt;score+=.1*dt;speed=Math.min(8,4+score/100);
+  player.vy+=.7*dt;player.y+=player.vy*dt;if(player.y+player.h>=ground){player.y=ground-player.h;player.vy=0;player.grounded=true}
+  if(frameNo%Math.max(38,Math.floor(85-score/3))<dt){let h=28+Math.random()*24,w=24+Math.random()*12;obstacles.push({x:W+10,y:ground-h,w,h})}
+  if(frameNo%78<dt){for(let i=0;i<3;i++)coins.push({x:W+10+i*28,y:ground-75-Math.random()*45,got:false})}
+  obstacles.forEach(o=>o.x-=speed*dt);coins.forEach(c=>c.x-=speed*dt);
+  obstacles=obstacles.filter(o=>o.x+o.w>-10);coins=coins.filter(c=>c.x>-10&&!c.got);
+  const pr={x:player.x+4,y:player.y+3,w:player.w-8,h:player.h-4};
+  for(const o of obstacles){if(hit(pr,o)){endGame();break}}
+  for(const c of coins){if(!c.got&&hit(pr,{x:c.x-9,y:c.y-9,w:18,h:18}))collectCoin(c)}
+  scoreEl.textContent=Math.floor(score);
+ }
+}
+function loop(t){let dt=Math.min(2,(t-(lastTime||t))/16.67);lastTime=t;update(dt);draw();requestAnimationFrame(loop)}
+// Pointer/touch plus click fallbacks; duplicate events are debounced.
+let lastAction=0;
+function doJump(e){if(e)e.preventDefault();let now=Date.now();if(now-lastAction<100)return;lastAction=now;jump()}
+function doStart(e){if(e)e.preventDefault();audioUnlock();startPause()}
+function doRestart(e){if(e)e.preventDefault();audioUnlock();newGame()}
+startBtn.addEventListener('click',doStart);
+startBtn.addEventListener('pointerdown',e=>{e.preventDefault();}, {passive:false});
+jumpBtn.addEventListener('click',doJump);
+jumpBtn.addEventListener('pointerdown',doJump,{passive:false});
+canvas.addEventListener('pointerdown',doJump,{passive:false});
+restartBtn.addEventListener('click',doRestart);
+soundBtn.addEventListener('click',()=>{audioUnlock();tone(880,.12);setTimeout(()=>tone(1175,.15),150)});
+document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();doJump(e)}if(e.code==='KeyP')startPause();if(e.code==='KeyR')doRestart()});
+resetToReady();
+function resetToReady(){player={x:65,y:ground-48,w:34,h:48,vy:0,grounded:true};obstacles=[];coins=[];score=0;runCoins=0;speed=4;frameNo=0;state='ready';startBtn.textContent='▶ START';scoreEl.textContent='0';coinsEl.textContent='0'}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
