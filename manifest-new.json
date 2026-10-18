@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Jevan Run",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Jevan Run",
+  "start_url": "/",
+  "theme_color": "#101827",
+  "id": "jevan-run",
+  "description": "An exciting running game."
+}
